@@ -1,17 +1,40 @@
-✈️ TravelFlow: 基于 LangGraph 的多智能体差旅编排引擎
-TravelFlow 是一个模拟真实旅游服务场景（如携程/飞猪）的高级 AI Agent 系统。它不仅实现了多轮对话，更核心的是通过 LangGraph 状态机 解决了复杂业务链路中的意图切换、上下文污染、敏感操作审批等工业级痛点。
+# 🧭 TravelFlow - 一站式智能差旅助手
 
-🏗️ 核心架构：多智能体协作 (Multi-Agent)
-TravelFlow 放弃了脆弱的单体 Prompt 结构，转而采用 “总-分”分层调度架构：
+> 基于 LangGraph 构建的多 Agent 差旅管理系统，支持航班查询、酒店预订、行程规划等功能。通过智能 Agent 协作与人工审核机制，实现安全可靠的差旅服务自动化。
 
-Main Dispatcher (主助手)：负责全局意图识别与权限预检，通过动态路由将请求分发至垂直领域。
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-0.1.x-orange.svg)](https://langchain-ai.github.io/langgraph/)
+[![SQLite](https://img.shields.io/badge/SQLite-DB-green.svg)](https://www.sqlite.org/)
 
-Specialized Agents (垂直子助手)：
+---
 
-Flight Agent: 机票搜索、改签、退票业务逻辑。
+## ✨ 核心特性
 
-Hotel Agent: 酒店筛选、预订、订单状态管理。
+### 🤖 多 Agent 协作架构
+- **Supervisor Agent**：负责任务分发与协调
+- **专业 Agent**：航班预订、酒店预订、汽车租赁、旅行推荐、网络搜索
+- **智能流转**：通过 Handoff Tool 实现 Agent 间无缝协作
 
-Excursion Agent: 景点门票销售、旅游路线推荐。
+### 🔒 人工审核机制
+- 在网络搜索等潜在风险操作前引入人工确认
+- 用户可选择批准（y）或直接提供答案
+- 实现安全可控的工具调用
 
-Rental Car Agent: 接送机安排、车辆预订。
+### 📊 SQLite 数据管理
+- 基于 `travel_new.sqlite` 存储航班、酒店、租车等核心数据
+- 支持数据时间同步，确保测试数据时效性
+- 事务安全，保证数据一致性
+
+### 🧠 政策 RAG 系统
+- 基于 BGE-Chinese 向量模型构建 FAQ 检索
+- 支持航空退改政策等结构化查询
+- 提升 Agent 决策准确性
+
+### 💾 状态管理与持久化
+- 基于 `MessagesState` + `MemorySaver` 实现会话状态追踪
+- 支持中断恢复与历史回溯
+- 保证多轮对话的上下文连续性
+
+```bash
+git clone https://github.com/zhaoshuyi12/TravelFlow-.git
+cd TravelFlow-
