@@ -1,12 +1,10 @@
-#创建网络搜索子智能体
 from typing import Annotated
-
+from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool, InjectedToolCallId
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import MessagesState
 from langgraph.prebuilt import create_react_agent, InjectedState
 from langgraph.types import Command
-
 
 from graph_chat.my_llm import llm
 from tools.car_tools import search_car_rentals, book_car_rental, update_car_rental, cancel_car_rental
