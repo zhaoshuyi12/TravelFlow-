@@ -63,6 +63,7 @@ car_rental_booking_agent = create_react_agent(
         "- 根据用户的偏好搜索可用租车，并与客户确认预订详情。\n"
         "- 如果您的工具都不适用或客户改变主意，直接回复，并给出理由。\n"
         "- 回复时仅包含工作结果，不要包含任何其他文字"
+        "如果你发现用户提出了非租车需求，请处理完租车部分后，直接回复‘车已定好，剩下的需求请咨询主管’，严禁尝试调用任何 transfer 开头的工具。"
     ),
     checkpointer=memory,
     name="car_rental_booking_agent",)
@@ -89,7 +90,7 @@ excursion_booking_agent = create_react_agent(
 )
 
 #监督者 也是一个智能体
-def create_handoff_tool(*, agent_name: str, description: str | None = None):
+def create_handoff_tool(*, agent_name: str,task_type:str, description: str | None = None):
     """
         创建一个用于将当前会话转接到指定代理的工具函数。
 
@@ -124,32 +125,58 @@ def create_handoff_tool(*, agent_name: str, description: str | None = None):
                  Command: 包含转接指令和状态更新的命令对象
 
              """
+        pending_tasks = getattr(state, "_pending_tasks", [])
+        completed_tasks = getattr(state, "_completed_tasks", set())
+        # 首次调用：解析用户原始请求中的所有任务
+        if not pending_tasks and state["messages"]:
+            user_msg = next((m for m in state["messages"] if hasattr(m, 'role') and m.role == 'user'), None)
+            if user_msg:
+                content = user_msg.content.lower()
+                new_pending = []
+                if any(kw in content for kw in ["酒店", "住宿", "hotel"]):
+                    new_pending.append("hotel")
+                if any(kw in content for kw in ["旅行攻略", "景点", "推荐", "excursion", "tour"]):
+                    new_pending.append("excursion")
+                if any(kw in content for kw in ["航班", "机票", "flight"]):
+                    new_pending.append("flight")
+                if any(kw in content for kw in ["租车", "car"]):
+                    new_pending.append("car_rental")
+                if any(kw in content for kw in ["搜索", "查", "research"]):
+                    new_pending.append("research")
+                pending_tasks = new_pending
+        pending_tasks = [t for t in pending_tasks if t not in completed_tasks]
         tool_message={
             "role": "tool",
             "content": f"Successfully transferred to {agent_name}",
             "name": name,
             "tool_call_id": tool_call_id,
         }
+        if pending_tasks and pending_tasks[0] != task_type:
+            return Command(update=state)
         return Command(graph=Command.PARENT,goto=agent_name,
                        update={**state,"messages": state["messages"] +  [tool_message]})
 
     return handoff_tool
 
-assign_to_research_agent=create_handoff_tool(agent_name='research_agent',description="将任务分配给：research_agent智能体。")
+assign_to_research_agent=create_handoff_tool(task_type='research',agent_name='research_agent',description="将任务分配给：research_agent智能体。")
 assign_to_flight_booking_agent = create_handoff_tool(
+    task_type='flight',
     agent_name="flight_booking_agent",
     description="将任务分配给：flight_booking_agent智能体。",
 )
 assign_to_hotel_booking_agent = create_handoff_tool(
+    task_type='hotel',
     agent_name="hotel_booking_agent",
     description="将任务分配给：hotel_booking_agent智能体。",
 )
 assign_to_car_rental_booking_agent = create_handoff_tool(
+    task_type='car_rental',
     agent_name="car_rental_booking_agent",
     description="将任务分配给：car_rental_booking_agent智能体。",
 )
 assign_to_excursion_booking_agent = create_handoff_tool(
     agent_name="excursion_booking_agent",
+    task_type='excursion',
     description="将任务分配给：excursion_booking_agent智能体。",
 )
 #创建主智能体
@@ -163,14 +190,15 @@ supervisor_agent = create_react_agent(
         "- 酒店预订智能体：分配与酒店查询，预定，修改订单等相关的任务\n"
         "- 汽车租赁预定智能体：分配与汽车租赁查询，预定，修改订单等相关的任务\n"
         "- 旅行产品预定智能体：分配与旅行推荐查询，预定，修改订单等相关的任务\n"
-        "处理规则：\n"
-        "1. 如果问题属于以下类别，直接回答：\n"
-        "   - 可以根据上下文记录直接回答的内容（如'你的航班信息，起飞时间等'）。\n"
-        "   - 不需要工具的一般咨询（如'你好'）。\n"
-        "   - 确认类问题（如'你收到我的请求了吗'）。\n"
-        "2. 其他情况按类型分配给对应智能体。\n"
-        "3. 一次只分配一个任务给一个智能体。\n"
-        "4. 不要自己执行需要工具的任务。\n"
+        "### 核心处理逻辑（重要）\n"
+        "1. **意图识别**：仔细分析用户输入，识别出所有需要完成的独立任务（例如：用户说'订酒店和查攻略'，则识别出'订酒店'和'查攻略'两个任务）。\n"
+        "2. **顺序执行**：你必须**按顺序**处理这些任务。不要试图同时做两件事。\n"
+        "3. **单步分配**：每次只将**当前**需要处理的任务分配给对应的智能体。\n"
+        "4. **状态保持**：在第一个任务（如订酒店）完成后，你必须**自动继续**分配第二个任务（如做攻略），直到所有任务都完成。\n"
+        "5. **最终回复**：当所有任务都完成后，向用户总结结果。\n"
+        "### 约束\n"
+        "- 绝对禁止：不要自己执行任务，必须调用工具。\n"
+        "- 绝对禁止：不要一次性调用多个工具或试图并行处理。\n"
     ),
     # checkpointer=memory,
     name="supervisor",

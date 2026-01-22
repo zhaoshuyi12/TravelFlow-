@@ -18,7 +18,21 @@ from graph_chat.draw_png import draw_graph
 from graph_chat.fetch_user_info_node import get_user_info
 from graph_chat.my_print import pretty_print_messages
 from tools.init_db import update_dates
-
+def wrap_agent_with_completion(agent, task_type: str):
+    """包装 agent，使其返回时标记任务完成"""
+    def wrapper(state):
+        result = agent.invoke(state)
+        # 获取已完成任务集合
+        completed = getattr(state, "_completed_tasks", set())
+        completed = set(completed)  # 确保是可变集合
+        completed.add(task_type)
+        # 合并结果
+        return {
+            **result,
+            "_completed_tasks": completed,
+            "_pending_tasks": getattr(state, "_pending_tasks", [])
+        }
+    return wrapper
 # --- 图定义 ---
 
 graph = (
@@ -28,11 +42,11 @@ graph = (
 
     # 2. 节点名称必须与 all_agent.py 中的定义严格对齐
     .add_node("supervisor", supervisor_agent)
-    .add_node("research_agent", research_agent)
-    .add_node("flight_booking_agent", flight_booking_agent)
-    .add_node("hotel_booking_agent", hotel_booking_agent)
-    .add_node("excursion_booking_agent", excursion_booking_agent)
-    .add_node("car_rental_booking_agent", car_rental_booking_agent)
+    .add_node("research_agent", wrap_agent_with_completion(research_agent, "research"))
+    .add_node("flight_booking_agent", wrap_agent_with_completion(flight_booking_agent, "flight"))
+    .add_node("hotel_booking_agent", wrap_agent_with_completion(hotel_booking_agent, "hotel"))
+    .add_node("excursion_booking_agent", wrap_agent_with_completion(excursion_booking_agent, "excursion"))
+    .add_node("car_rental_booking_agent", wrap_agent_with_completion(car_rental_booking_agent, "car_rental"))
 
     # --- 连线逻辑 ---
     .add_edge(START, 'fetch_user_info')
@@ -76,7 +90,7 @@ def execute_graph(user_input: str):
             print(f"\n--- [节点: {node_name}] ---")
             # 调用你原有的打印工具
             pretty_print_messages(output, last_message=True)
-
+draw_graph(graph,'graph_supervisor.png')
 
 # --- 主循环 ---
 
