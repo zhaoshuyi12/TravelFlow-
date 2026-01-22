@@ -63,7 +63,6 @@ car_rental_booking_agent = create_react_agent(
         "- 根据用户的偏好搜索可用租车，并与客户确认预订详情。\n"
         "- 如果您的工具都不适用或客户改变主意，直接回复，并给出理由。\n"
         "- 回复时仅包含工作结果，不要包含任何其他文字"
-        "如果你发现用户提出了非租车需求，请处理完租车部分后，直接回复‘车已定好，剩下的需求请咨询主管’，严禁尝试调用任何 transfer 开头的工具。"
     ),
     checkpointer=memory,
     name="car_rental_booking_agent",)
