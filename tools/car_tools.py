@@ -56,7 +56,7 @@ def book_car_rental(rental_id: int) -> str:
     通过ID预订汽车租赁服务。
 
     参数:
-    - rental_id (int): 要预订的汽车租赁服务的ID。
+    - rental_id: 要预订的汽车租赁服务的ID。
 
     返回:
     - str: 表明汽车租赁是否成功预订的消息。
@@ -85,9 +85,9 @@ def update_car_rental(
     根据ID更新汽车租赁的开始和结束日期。
 
     参数:
-        rental_id (int): 要更新的汽车租赁服务的ID。
-        start_date (Optional[Union[datetime, date]]): 汽车租赁的新开始日期。默认为None。
-        end_date (Optional[Union[datetime, date]]): 汽车租赁的新结束日期。默认为None。
+        rental_id: 要更新的汽车租赁服务的ID。
+        start_date: 汽车租赁的新开始日期。默认为None。
+        end_date: 汽车租赁的新结束日期。默认为None。
 
     返回:
         str: 表明汽车租赁是否成功更新的消息。
@@ -121,7 +121,7 @@ def cancel_car_rental(rental_id: int) -> str:
     根据ID取消汽车租赁服务。
 
     参数:
-        rental_id (int): 要取消的汽车租赁服务的ID。
+        rental_id: 要取消的汽车租赁服务的ID。
 
     返回:
         str: 表明汽车租赁是否成功取消的消息。
