@@ -24,22 +24,23 @@ def get_user_info(state:MessagesState,config:RunnableConfig):
 
         for message in state['messages']:
             "如果已经查到了航班信息了几句直接返回"
-            if isinstance(message,AIMessage) and message.id=="user_info_success":
-                return
+            if isinstance(message,AIMessage) and message.name=="user_info_success":
+                # 即使已有信息，也要返回当前状态，不能返回空字典
+                return state
 
     flight_data=fetch_user_flight_information(config)
     if flight_data:
         flight_message=AIMessage(
             content=format_flight_info(flight_data),
             additional_kwargs={},
-            id='user_info_success',
+            name='user_info_success',
 
         )
     else:
         flight_message = AIMessage(
             content="未找到航班信息请检查旅客信息时候正确",
             additional_kwargs={},
-            id='user_info_fail',
+            name='user_info_reset',
 
         )
 

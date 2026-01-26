@@ -16,7 +16,7 @@ def search_hotels(
         # price_tier: Optional[str] = None,
         # checkin_date: Optional[Union[datetime, date]] = None,
         # checkout_date: Optional[Union[datetime, date]] = None,
-) -> list[dict]:
+) -> str:
     """
     根据位置、名称、价格层级、入住日期和退房日期搜索酒店。
 
@@ -25,7 +25,7 @@ def search_hotels(
         name (Optional[str]): 酒店的名称。默认为None。
 
     返回:
-        list[dict]: 包含匹配搜索条件的酒店信息的字典列表。
+        str: 包含匹配搜索条件的酒店信息
     """
 
     conn = connect(db)
@@ -48,9 +48,24 @@ def search_hotels(
     print('查询酒店的结果: ', results)
     conn.close()
 
-    return [
-        dict(zip([column[0] for column in cursor.description], row)) for row in results
-    ]
+    if not results:
+        return "未找到符合条件的酒店。请尝试调整搜索条件。"
+
+        # ✅ 格式化为易读的字符串
+    formatted_result = "以下是找到的酒店：\n\n"
+    for i, row in enumerate(results, 1):
+        hotel_dict = dict(zip([column[0] for column in cursor.description], row))
+        formatted_result += f"酒店 {i}:\n"
+        formatted_result += f"  ID: {hotel_dict.get('id', 'N/A')}\n"
+        formatted_result += f"  名称: {hotel_dict.get('name', 'N/A')}\n"
+        formatted_result += f"  位置: {hotel_dict.get('location', 'N/A')}\n"
+        formatted_result += f"  类别: {hotel_dict.get('category', 'N/A')}\n"
+        formatted_result += f"  入住日期: {hotel_dict.get('checkin_date', 'N/A')}\n"
+        formatted_result += f"  退房日期: {hotel_dict.get('checkout_date', 'N/A')}\n"
+        formatted_result += f"  评分: {hotel_dict.get('rating', 'N/A')}\n"
+        formatted_result += "-" * 40 + "\n"
+
+    return formatted_result  # ✅ 返回格式化字符串，而不是列表
 
 
 @tool
