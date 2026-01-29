@@ -1,12 +1,13 @@
 import operator
 import uuid
-from typing import Annotated, Set, List
+from typing import Annotated, Set, List, Literal
 
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.constants import START
 from langgraph.graph import MessagesState, StateGraph
 from langgraph.types import Command
 from langgraph_supervisor import create_supervisor
+from pydantic import BaseModel, Field
 
 # 从 all_agent 导入子智能体和配置（注意：all_agent 中不应再包含手动构建的 supervisor 逻辑）
 from graph_chat.all_agent import (
@@ -24,8 +25,15 @@ from graph_chat.my_print import pretty_print_messages
 from tools.init_db import update_dates
 
 
+class Task(BaseModel):
+    agent: Literal["research_agent", "flight_booking_agent", "hotel_booking_agent", "car_rental_booking_agent", "excursion_booking_agent"] = Field(description="执行任务的智能体名称")
+    instruction: str = Field(description="具体要执行的指令内容")
 
 
+class IntentPlan(BaseModel):
+    """用户意图拆解计划"""
+    analysis: str = Field(description="对用户多种意图的综合分析")
+    tasks: List[Task] = Field(description="拆解后的任务执行清单")
 # ==========================================
 # 使用 create_supervisor 创建监督者（包含所有子智能体和 handoff 工具）
 # ==========================================
@@ -61,8 +69,10 @@ supervisor = create_supervisor(
         "### 约束\n"
         "- 你没有任何修改的权限，必须将预订请求转交给对应的 Agent 待其完成后再收回控制权。\n"
         "- 绝对禁止：不要一次性调用多个工具或试图并行处理。"
-    ),supervisor_name="supervisor",
-    # output_mode="last_message",  # 可选：控制输出格式
+    ),
+    response_format=IntentPlan,
+    supervisor_name="supervisor",
+
 )
 
 # 编译 supervisor（此时它内部已经包含所有子智能体和路由逻辑）
@@ -151,6 +161,14 @@ def execute_graph(user_input: str):
             continue
         for node_name, output in chunk.items():
             print(f"\n--- [节点: {node_name}] ---")
+            print(output)
+            if "structured_response" in output and output["structured_response"]:
+                plan = output["structured_response"]
+                print(f"【AI 规划分析】：{plan.summary}")
+                print("【待执行清单】：")
+                for i, t in enumerate(plan.tasks):
+                    print(f"  {i + 1}. [{t.agent}] -> {t.instruction}")
+                print("-" * 30)
             pretty_print_messages(output, last_message=True)
 
 
