@@ -39,7 +39,7 @@ def lookup_policy(query: str) -> str:
     # 查询相似度最高的 k 个文档
     docs = retriever.invoke(query)
     # 返回这些文档的内容
-    return "\n\n".join([doc["page_content"] for doc in docs])
+    return "\n\n".join([doc.page_content for doc in docs])
 
 if __name__ == '__main__':
     print(lookup_policy)
